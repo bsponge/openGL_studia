@@ -1,0 +1,5 @@
+/home/js/cpp/grafika/build/CMakeFiles/rebuild_cache.dir
+/home/js/cpp/grafika/build/CMakeFiles/edit_cache.dir
+/home/js/cpp/grafika/build/src/CMakeFiles/edit_cache.dir
+/home/js/cpp/grafika/build/src/CMakeFiles/rebuild_cache.dir
+/home/js/cpp/grafika/build/src/CMakeFiles/grafika.dir

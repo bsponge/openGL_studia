@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/js/cpp/grafika/src/main.cpp
+iostream
+-
+stdio.h
+-
+GL/glew.h
+-
+SFML/Window.hpp
+-
+cmath
+-
+
