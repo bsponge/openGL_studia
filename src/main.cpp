@@ -41,8 +41,85 @@ outColor = vec4(Color, 1.0);
 }
 )glsl";
 
-void setCamera(glm::mat4 view, sf::Time time, sf::Window window) {
+bool firstMouse = true;
+int lastX, lastY;
+double yaw = 45.0;
+double pitch = 0.0;
+
+glm::vec3 cameraPos = glm::vec3(0.3f, 0.3f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+
+
+void ustawKamereMysz(GLint uniView, sf::Int64 time, sf::Window& window) {
+  sf::Vector2i localPosition = sf::Mouse::getPosition(window);
+  sf::Vector2i position;
+  bool relocation = false;
+
+  if (localPosition.x <= 0) {
+    position.x = window.getSize().x - 1;
+    position.y = localPosition.y;
+    relocation = true;
+  }
+  if (localPosition.x >= window.getSize().x - 1) {
+    position.x = 0;
+    position.y = localPosition.y;
+    relocation = true;
+  }
+  if (localPosition.y <= 0) {
+    position.y = window.getSize().y;
+    position.x = localPosition.x;
+    relocation = true;
+  }
+  if (localPosition.y >= window.getSize().y - 1) {
+    position.y = 0;
+    position.x = localPosition.x;
+    relocation = true;
+  }
+  if (relocation) {
+    sf::Mouse::setPosition(position, window);
+    firstMouse = true;
+    localPosition = sf::Mouse::getPosition(window);
+  }
   
+  
+  if (firstMouse) {
+    lastX = localPosition.x;
+    lastY = localPosition.y;
+    firstMouse = false;
+  }
+
+  double xoffset = localPosition.x - lastX;
+  double yoffset = localPosition.y - lastY;
+  lastX = localPosition.x;
+  lastY = localPosition.y;
+
+  double sensitivity = 0.001;
+  double cameraSpeed = 0.003 * time;
+  
+  xoffset *= sensitivity;
+  yoffset *= sensitivity;
+
+  yaw += xoffset * cameraSpeed;
+  pitch -= yoffset * cameraSpeed;
+
+  if (pitch > 89.0) {
+    pitch = 89.0;
+  }
+  if (pitch < -89.0) {
+    pitch = -89.0;
+  }
+
+  glm::vec3 front;
+  front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+  front.y = sin(glm::radians(pitch));
+  front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+  cameraFront = glm::normalize(front);
+
+  glm::mat4 view;
+  view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+  glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
 }
 
 
@@ -187,10 +264,7 @@ int main() {
 
   glm::mat4 view;
 
-  glm::vec3 cameraPos = glm::vec3(0.3f, 0.3f, 3.0f);
-  glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-  glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-
+  
   view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
   GLint uniView = glGetUniformLocation(shaderProgram, "view");
@@ -201,7 +275,7 @@ int main() {
 
   glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
 
-  float cameraSpeed = 0.06f;
+  
 
   sf::Clock clock;
   sf::Time time;
@@ -212,8 +286,18 @@ int main() {
 	bool running = true;
 
   glEnable(GL_DEPTH_TEST);
+  int licznik = 0;
+
   
   while (running) {
+    time = clock.restart();
+    licznik++;
+    float cameraSpeed = 0.000002f * time.asMicroseconds();
+    float ffps = 1000000 / time.asMicroseconds();
+    if (licznik > ffps) {
+      window.setTitle(std::to_string(ffps));
+      licznik = 0;
+    }
     sf::Event windowEvent;
 		while (window.pollEvent(windowEvent)) {
 			switch (windowEvent.type) {
@@ -221,7 +305,7 @@ int main() {
           running = false;
           break;
         case sf::Event::MouseMoved:
-          std::cout << "mouse moved" << std::endl;
+          ustawKamereMysz(uniView, time.asMicroseconds(), window);
           break;
         case sf::Event::KeyPressed:
           switch (windowEvent.key.code) {
@@ -235,7 +319,7 @@ int main() {
               glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
               break;
             case sf::Keyboard::A:
-              cameraPos.x -= cameraSpeed;
+              cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
               view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
               uniView = glGetUniformLocation(shaderProgram, "view");
               glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
@@ -247,7 +331,7 @@ int main() {
               glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
               break;
             case sf::Keyboard::D:
-              cameraPos.x += cameraSpeed;
+              cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
               view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
               uniView = glGetUniformLocation(shaderProgram, "view");
               glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
