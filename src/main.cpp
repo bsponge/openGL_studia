@@ -39,13 +39,14 @@ void main(){
 const GLchar* fragmentSource = R"glsl(
 #version 150 core
 uniform sampler2D texture1;
+uniform sampler2D texture2;
 in vec2 TexCoord;
 in vec3 Color;
 out vec4 outColor;
 
 void main()
 {
-outColor = texture(texture1, TexCoord); 
+outColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.5);
 }
 )glsl";
 
@@ -267,17 +268,18 @@ int main() {
   glEnableVertexAttribArray(texCoord);
   glVertexAttribPointer(texCoord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
 
-  unsigned int texture1;
-  glGenTextures(1, &texture1);
-  glBindTexture(GL_TEXTURE_2D, texture1);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  GLuint textures[2];
+  glGenTextures(2, textures);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, textures[0]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   int width, height, nrChannels;
   stbi_set_flip_vertically_on_load(true);
-  unsigned char *data = stbi_load("/home/js/cpp/grafika/src/test.jpg", &width, &height, &nrChannels, 0);
+  unsigned char *data = stbi_load("/home/js/cpp/grafika/src/website.jpg", &width, &height, &nrChannels, 0);
   if (data) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -285,6 +287,29 @@ int main() {
     std::cout << "Failed to load texture" << std::endl;
   }
   stbi_image_free(data);
+
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, textures[1]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+  stbi_set_flip_vertically_on_load(true);
+  data = stbi_load("/home/js/cpp/grafika/src/test.jpg", &width, &height, &nrChannels, 0);
+  if (data) {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  } else {
+    std::cout << "Failed to load texture" << std::endl;
+  }
+  stbi_image_free(data);
+
+  GLint tex1_pos = glGetUniformLocation(shaderProgram, "texture1");
+  GLint tex2_pos = glGetUniformLocation(shaderProgram, "texture2");
+
+  glUniform1i(tex1_pos, 0);
+  glUniform1i(tex2_pos, 1);
 
 
   glm::mat4 model = glm::mat4(1.0f);
@@ -305,10 +330,6 @@ int main() {
   GLint uniProj = glGetUniformLocation(shaderProgram, "proj");
 
   glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
-
-  glBindTexture(GL_TEXTURE_2D, texture1);
-
-  
 
   sf::Clock clock;
   sf::Time time;
@@ -386,10 +407,13 @@ int main() {
       }
     } 
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glDrawArrays(GL_TRIANGLES, 0, vertices_size);
-		window.display();
-	}
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+
+    glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+
+
+    window.display();
+  }
 
 	// Kasowanie programu i czyszczenie buforów
 
@@ -399,7 +423,4 @@ int main() {
 	glDeleteBuffers(1, &vbo);
 	glDeleteVertexArrays(1, &vao);
 
-	// Zamknięcie okna renderingu
-	window.close();
-	return 0;
 }
