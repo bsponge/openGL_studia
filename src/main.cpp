@@ -131,15 +131,73 @@ void ustawKamereMysz(GLint uniView, sf::Int64 time, sf::Window& window) {
   glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
 }
 
+void StereoProjection(GLuint shaderProgram_,float _left, float _right, float _bottom, float _top, float _near, float _far, float _zero_plane, float _dist, float _eye)
+{
+  //    Perform the perspective projection for one eye's subfield.
+  //    The projection is in the direction of the negative z-axis.
+  //            _left=-6.0;
+  //            _right=6.0;
+  //            _bottom=-4.8;
+  //             _top=4.8;
+  //    [default: -6.0, 6.0, -4.8, 4.8]
+  //    left, right, bottom, top = the coordinate range, in the plane of zero parallax setting,
+  //         which will be displayed on the screen.
+  //         The ratio between (right-left) and (top-bottom) should equal the aspect
+  //    ratio of the display.
+
+
+  //                  _near=6.0;
+  //                  _far=-20.0;
+  //    [default: 6.0, -6.0]
+  //    near, far = the z-coordinate values of the clipping planes.
+
+  //                  _zero_plane=0.0;
+  //    [default: 0.0]
+  //    zero_plane = the z-coordinate of the plane of zero parallax setting.
+
+  //    [default: 14.5]
+  //                     _dist=10.5;
+  //   dist = the distance from the center of projection to the plane of zero parallax.
+
+  //    [default: -0.3]
+  //                 _eye=-0.3;
+  //    eye = half the eye separation; positive for the right eye subfield,
+  //    negative for the left eye subfield.
+
+  float   _dx = _right - _left;
+  float   _dy = _top - _bottom;
+
+  float   _xmid = (_right + _left) / 2.0;
+  float   _ymid = (_top + _bottom) / 2.0;
+
+  float   _clip_near = _dist + _zero_plane - _near;
+  float   _clip_far = _dist + _zero_plane - _far;
+
+  float  _n_over_d = _clip_near / _dist;
+
+  float   _topw = _n_over_d * _dy / 2.0;
+  float   _bottomw = -_topw;
+  float   _rightw = _n_over_d * (_dx / 2.0 - _eye);
+  float   _leftw = _n_over_d * (-_dx / 2.0 - _eye);
+
+  // Create a fustrum, and shift it off axis
+  glm::mat4 proj=glm::frustum(_leftw, _rightw, _bottomw, _topw, _clip_near, _clip_far);
+
+  proj = glm::translate(proj, glm::vec3(-_xmid - _eye, -_ymid, 0));
+
+  GLint uniProj = glGetUniformLocation(shaderProgram_, "proj");
+  glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
+}
+
 
 int main() {
 
   sf::ContextSettings settings;
-	settings.depthBits = 24;
-	settings.stencilBits = 8;
-	// Okno renderingu
+  settings.depthBits = 24;
+  settings.stencilBits = 8;
+  // Okno renderingu
 
-	sf::Window window(sf::VideoMode(800, 800, 32), "OpenGL", sf::Style::Titlebar | sf::Style::Close, settings);
+  sf::Window window(sf::VideoMode(1000, 800, 32), "OpenGL", sf::Style::Titlebar | sf::Style::Close | sf::Style::Fullscreen, settings);
 
 	// Inicjalizacja GLEW
 	glewExperimental = GL_TRUE;
@@ -342,6 +400,14 @@ int main() {
   glEnable(GL_DEPTH_TEST);
   int licznik = 0;
 
+
+  int mode = 0;
+  float zero_plane = 0.0;
+  float dist = 13;
+  float eye = 0.05;
+
+
+
   
   while (running) {
     time = clock.restart();
@@ -402,20 +468,82 @@ int main() {
               uniView = glGetUniformLocation(shaderProgram, "view");
               glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
               break; 
+            case sf::Keyboard::U:
+              zero_plane += 0.5;
+              break;
+            case sf::Keyboard::I:
+              dist += 0.1;
+              break;
+            case sf::Keyboard::O:
+              eye += 0.1;
+              break;
+            case sf::Keyboard::J:
+              zero_plane -= 0.5;
+              break;
+            case sf::Keyboard::K:
+              dist -= 0.1;
+              break;
+            case sf::Keyboard::L:
+              eye -= 0.1;
+              break;
+            case sf::Keyboard::Num1:
+              mode = 0;
+              break;
+            case sf::Keyboard::Num2:
+              mode = 1;
+              break;
+            case sf::Keyboard::Num3:
+              mode = 2;
+              break;
           }
           break;
       }
     } 
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
 
-    glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+    switch (mode) {
+      case 0:
+        glViewport(0, 0, window.getSize().x, window.getSize().y);
+        glDrawBuffer(GL_BACK_LEFT);
+        StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, -eye);
+        glColorMask(true, false, false, false);
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
 
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glDrawBuffer(GL_BACK_RIGHT);
+        StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, eye);
+        glColorMask(false, false, true, false);
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+
+        glColorMask(true, true, true, true);
+        break;
+      case 1:
+        glViewport(0, 0, window.getSize().x/2, window.getSize().y);
+        glDrawBuffer(GL_BACK_LEFT);
+        StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, -eye);
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        
+        glViewport(window.getSize().x/2, 0, window.getSize().x/2, window.getSize().y);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glDrawBuffer(GL_BACK_RIGHT);
+        StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, eye);
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        break;
+      case 2:
+        glViewport(0, 0, window.getSize().x, window.getSize().y);
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        break;
+    }
+
+    //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
 
     window.display();
   }
 
-	// Kasowanie programu i czyszczenie buforów
+  // Kasowanie programu i czyszczenie buforów
 
 	glDeleteProgram(shaderProgram);
 	glDeleteShader(fragmentShader);
