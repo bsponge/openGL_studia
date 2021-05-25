@@ -1,6 +1,9 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <fstream>
+#include <list>
+#include <ctime>
 // Nagłówki
 #include <GL/glew.h>
 #include <SFML/Window.hpp>
@@ -15,21 +18,22 @@
 #include <SFML/System/Time.hpp>
 
 // Kody shaderów
-
+//
+/*
 const GLchar* vertexSource = R"glsl(
 #version 150 core
-in vec2 aTexCoord;
-out vec2 TexCoord;
+#in vec2 aTexCoord;
+#out vec2 TexCoord;
 in vec3 position;
-in vec3 color;
+#in vec3 color;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 proj;
 out vec3 Color;
 
 void main(){
-  TexCoord = aTexCoord;
-  Color = color;
+  #TexCoord = aTexCoord;
+  Color = vec3(0.0, 1.0, 0.0);
   gl_Position = proj * view * model * vec4(position, 1.0);
 }
 )glsl";
@@ -38,15 +42,43 @@ void main(){
 
 const GLchar* fragmentSource = R"glsl(
 #version 150 core
-uniform sampler2D texture1;
-uniform sampler2D texture2;
-in vec2 TexCoord;
+#uniform sampler2D texture1;
+#uniform sampler2D texture2;
+#in vec2 TexCoord;
 in vec3 Color;
 out vec4 outColor;
 
 void main()
 {
-outColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.5);
+  #outColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.5);
+  outColor = Color;
+}
+)glsl";
+
+
+   */
+
+const GLchar* vertexSource = R"glsl(
+#version 150 core
+in vec3 position;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
+
+void main(){
+  gl_Position = proj * view * model * vec4(position, 1.0);
+}
+)glsl";
+
+
+
+const GLchar* fragmentSource = R"glsl(
+#version 150 core
+out vec4 Color;
+
+void main()
+{
+  Color = vec4(0.0, 0.3, 1.0, 1.0);
 }
 )glsl";
 
@@ -189,6 +221,73 @@ void StereoProjection(GLuint shaderProgram_,float _left, float _right, float _bo
   glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
 }
 
+unsigned int vertices_size;
+
+int loadVertices(GLuint vbo, GLuint eb) {
+  std::list<float> vertices;
+  std::list<unsigned int> indices;
+
+  std::ifstream file("/home/js/cpp/grafika/src/test.obj");
+  std::string line;
+  if (file.is_open()) {
+    while (std::getline(file, line)) {
+      if (line[0] == 'v') {
+        std::string::size_type s;
+        line = line.substr(1, line.length()-1);
+        double d = std::stof(line, &s);
+        vertices.push_back(d);
+        line = line.substr(s);
+        d = std::stof(line, &s);
+        vertices.push_back(d);
+        d = std::stof(line, &s);
+        line = line.substr(s);
+        d = std::stof(line, &s);
+        vertices.push_back(d);
+      } else if (line[0] == 'f') {
+        std::string::size_type s;
+        line = line.substr(1, line.length()-1);
+        unsigned int i = std::stoul(line, &s);
+        indices.push_back(--i);
+        line = line.substr(s);
+        i = std::stoul(line, &s);
+        indices.push_back(--i);
+        line = line.substr(s);
+        i = std::stoul(line, &s);
+        indices.push_back(--i);
+        line = line.substr(s);
+      }
+    }
+    file.close();
+  } else {
+    std::cout << "loadVertices ERROR" << std::endl;
+  }
+  float* ver = new float[vertices.size()];
+  unsigned int* ind = new unsigned int[indices.size()];
+  int i = 0;
+  for (float const &k : vertices) {
+    ver[i++] = k;
+  }
+  i = 0;
+  for (int const &k : indices) {
+    ind[i++] = k;
+  }
+  std::cout << "vertex size: " << vertices.size() << std::endl;
+  std::cout << "indices size: " << indices.size() << std::endl;
+  
+  int indices_size = indices.size();
+  vertices_size = vertices.size();
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), ver, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eb);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), ind, GL_STATIC_DRAW);
+
+  delete [] ver;
+  delete [] ind;
+
+  return indices_size;
+}
+
 
 int main() {
 
@@ -197,7 +296,7 @@ int main() {
   settings.stencilBits = 8;
   // Okno renderingu
 
-  sf::Window window(sf::VideoMode(1000, 800, 32), "OpenGL", sf::Style::Titlebar | sf::Style::Close | sf::Style::Fullscreen, settings);
+  sf::Window window(sf::VideoMode(1300, 900, 32), "OpenGL", sf::Style::Titlebar | sf::Style::Close, settings);
 
 	// Inicjalizacja GLEW
 	glewExperimental = GL_TRUE;
@@ -210,18 +309,11 @@ int main() {
   window.setFramerateLimit(60);
 
 	// Utworzenie VAO (Vertex Array Object)
-
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
 	// Utworzenie VBO (Vertex Buffer Object)
 
 	// i skopiowanie do niego danych wierzchołkowych
 
-	GLuint vbo;
-	glGenBuffers(1, &vbo);
-
+	  /*
   float vertices[] = {
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
     0.5f, -0.5f, -0.5f,  1.0f, 0.0f, 0.0f, 1.0f, 0.0f,
@@ -270,6 +362,21 @@ int main() {
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, vertices_size, vertices, GL_STATIC_DRAW);
+  */
+
+
+  GLuint vao;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  GLuint vbo;
+  glGenBuffers(1, &vbo);
+
+  GLuint eb;
+  glGenBuffers(1, &eb);
+
+  int indices_size = loadVertices(vbo, eb);
+
 
   // Utworzenie i skompilowanie shadera wierzchołków
   GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -318,14 +425,9 @@ int main() {
   
 	GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
 	glEnableVertexAttribArray(posAttrib);
-	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), 0);
-	GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
-	glEnableVertexAttribArray(colAttrib);
-	glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
-  GLint texCoord = glGetAttribLocation(shaderProgram, "aTexCoord");
-  glEnableVertexAttribArray(texCoord);
-  glVertexAttribPointer(texCoord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+	glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
+  /*
   GLuint textures[2];
   glGenTextures(2, textures);
   glActiveTexture(GL_TEXTURE0);
@@ -368,10 +470,11 @@ int main() {
 
   glUniform1i(tex1_pos, 0);
   glUniform1i(tex2_pos, 1);
+  */
 
 
   glm::mat4 model = glm::mat4(1.0f);
-  model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
   GLint uniTrans = glGetUniformLocation(shaderProgram, "model");
   glUniformMatrix4fv(uniTrans, 1, GL_FALSE, glm::value_ptr(model));
@@ -401,7 +504,7 @@ int main() {
   int licznik = 0;
 
 
-  int mode = 0;
+  int mode = 2;
   float zero_plane = 0.0;
   float dist = 13;
   float eye = 0.05;
@@ -412,7 +515,7 @@ int main() {
   while (running) {
     time = clock.restart();
     licznik++;
-    float cameraSpeed = 0.000002f * time.asMicroseconds();
+    float cameraSpeed = 0.00005f * time.asMicroseconds();
     float ffps = 1000000 / time.asMicroseconds();
     if (licznik > ffps) {
       window.setTitle(std::to_string(ffps));
@@ -510,13 +613,15 @@ int main() {
         glDrawBuffer(GL_BACK_LEFT);
         StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, -eye);
         glColorMask(true, false, false, false);
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
 
         glClear(GL_DEPTH_BUFFER_BIT);
         glDrawBuffer(GL_BACK_RIGHT);
         StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, eye);
         glColorMask(false, false, true, false);
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
 
         glColorMask(true, true, true, true);
         break;
@@ -524,17 +629,21 @@ int main() {
         glViewport(0, 0, window.getSize().x/2, window.getSize().y);
         glDrawBuffer(GL_BACK_LEFT);
         StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, -eye);
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
-        
+        //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
+
         glViewport(window.getSize().x/2, 0, window.getSize().x/2, window.getSize().y);
         glClear(GL_DEPTH_BUFFER_BIT);
         glDrawBuffer(GL_BACK_RIGHT);
         StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, eye);
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
         break;
       case 2:
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glViewport(0, 0, window.getSize().x, window.getSize().y);
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
+        glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, 0);
+        //glDrawArrays(GL_TRIANGLES, 0, vertices_size);
         break;
     }
 
@@ -548,6 +657,7 @@ int main() {
 	glDeleteProgram(shaderProgram);
 	glDeleteShader(fragmentShader);
 	glDeleteShader(vertexShader);
+  glDeleteBuffers(1, &eb);
 	glDeleteBuffers(1, &vbo);
 	glDeleteVertexArrays(1, &vao);
 

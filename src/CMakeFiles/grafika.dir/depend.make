@@ -103,4 +103,5 @@ src/CMakeFiles/grafika.dir/main.cpp.o: include/glm/vec2.hpp
 src/CMakeFiles/grafika.dir/main.cpp.o: include/glm/vec3.hpp
 src/CMakeFiles/grafika.dir/main.cpp.o: include/glm/vec4.hpp
 src/CMakeFiles/grafika.dir/main.cpp.o: include/glm/vector_relational.hpp
+src/CMakeFiles/grafika.dir/main.cpp.o: include/stb/stb_image.h
 
