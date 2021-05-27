@@ -80,8 +80,8 @@ void main(){
 
 const GLchar* fragmentSource = R"glsl(
 #version 150 core
-uniform sampler2D texture1;
 in vec2 texCoord;
+uniform sampler2D texture1;
 out vec4 Color;
 
 void main()
@@ -405,7 +405,7 @@ bool LoadModelOBJNormalsCoord(int& punkty_, const char* filename, int buffer, st
 
     if (output == "usemtl") {
       if (lastMtl != "") {
-        map["/home/js/cpp/grafika/src/" + lastMtl].push_back(std::pair<int, int>(begin, mtlCounter));
+        map[lastMtl].push_back(std::pair<int, int>(begin, mtlCounter));
         begin += mtlCounter;
         mtlCounter = 0;
       }
@@ -428,8 +428,9 @@ bool LoadModelOBJNormalsCoord(int& punkty_, const char* filename, int buffer, st
               mtlFile >> output;
               mtlFile >> output;
               lastMtl = output;
-              if (map.find("/home/js/cpp/grafika/src/" + output) == map.end()) {
-                map["/home/js/cpp/grafika/src/" + output] = std::vector<std::pair<int, int>>();  
+              std::cout << "path: " << output << std::endl;
+              if (map.find(output) == map.end()) {
+                map[output] = std::vector<std::pair<int, int>>();  
               } 
               break;
             }
@@ -440,7 +441,7 @@ bool LoadModelOBJNormalsCoord(int& punkty_, const char* filename, int buffer, st
     }
 	}
 
-  map["/home/js/cpp/grafika/src/" + lastMtl].push_back(std::pair<int, int>(begin, mtlCounter));
+  map[lastMtl].push_back(std::pair<int, int>(begin, mtlCounter));
 	GLfloat *vertices = new GLfloat[triangles * 24];
 
 	int vert_current = 0;
@@ -532,17 +533,7 @@ int main() {
 
   std::map<std::string, std::vector<std::pair<int ,int>>> map;
 
-  bool b = LoadModelOBJNormalsCoord(indices_size, "/home/js/cpp/grafika/src/trzy.obj", vbo, map);
-
-  int textures_size = map.size();
-
-  /*
-  std::cout << map.size() << std::endl;
-  for (const auto& [key, value] : map) {
-    std::cout << key << std::endl;
-  }
-  */
-
+  bool b = LoadModelOBJNormalsCoord(indices_size, "/home/js/cpp/grafika/src/drugie.obj", vbo, map);
 
   // Utworzenie i skompilowanie shadera wierzchołków
   GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -601,15 +592,14 @@ int main() {
   glVertexAttribPointer(texCoord, 2, GL_FLOAT, GL_FALSE, 8*sizeof(GL_FLOAT), (void*)(sizeof(GL_FLOAT)*6));
 
   //================================== TEXTURES
-  std::vector<std::string> keys;
-  for (const auto& [key, value] : map) {
-    keys.push_back(key);
-  }
   GLint tex_pos = glGetUniformLocation(shaderProgram, "texture1");
   glUniform1i(tex_pos, 0);
-  GLuint *textures = new GLuint[textures_size];
-  glGenTextures(textures_size, textures);
-  for (int i = 0; i < textures_size; i++) {
+  GLuint textures[vao_size];
+  glGenTextures(vao_size, textures);
+  for (int i = 0; i < vao_size; i++) {
+    glBindVertexArray(vao[i]);
+
+    glActiveTexture(GL_TEXTURE0+i);
     glBindTexture(GL_TEXTURE_2D, textures[i]);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -618,18 +608,22 @@ int main() {
 
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true);
+    std::cout << "before loading " << keys[i] << std::endl;
     unsigned char *data = stbi_load(keys[i].c_str(), &width, &height, &nrChannels, 0);
-    //std::cout << "widht: " << width << " " << "height: " << height << " nrChannels: " << nrChannels <<  std::endl;
+    std::cout << "widht: " << width << " " << "height: " << height << " nrChannels: " << nrChannels <<  std::endl;
     if (data) {
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+      std::cout << "fjdljfldk" << std::endl;
       glGenerateMipmap(GL_TEXTURE_2D);
     } else {
       std::cout << "Failed to load texture: " << keys[i] << std::endl;
     }
     stbi_image_free(data);
 
+    GLint tex_pos = glGetUniformLocation(shaderProgram, "texture1");
     glUniform1i(tex_pos, 0);
   }
+  std::cout << "textures loaded" << std::endl;
 
   /*
   glActiveTexture(GL_TEXTURE0);
@@ -838,17 +832,18 @@ int main() {
         //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
         break;
       case 2:
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glViewport(0, 0, window.getSize().x, window.getSize().y);
-
-        for (int i = 0; i < textures_size; ++i) {
-          glActiveTexture(GL_TEXTURE0);
-          glBindTexture(GL_TEXTURE_2D, textures[i]);
-          glUniform1i(tex_pos, 0);
+        for (int i = 0; i < vao_size; ++i) {
+          glBindVertexArray(vao[0]);
           for (const auto& v : map[keys[i]]) {
+            glUniform1i(tex_pos, i);
             glDrawArrays(GL_TRIANGLES, v.first, v.second);
           }
         }
+        //glDrawArrays(GL_TRIANGLES, 0, indices_size);
+        //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, 0);
+        //glDrawArrays(GL_TRIANGLES, 0, vertices_size);
         break;
     }
 
