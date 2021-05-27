@@ -811,6 +811,14 @@ int main() {
         glDrawBuffer(GL_BACK_LEFT);
         StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, -eye);
         glColorMask(true, false, false, false);
+        for (int i = 0; i < textures_size; ++i) {
+          glActiveTexture(GL_TEXTURE0);
+          glBindTexture(GL_TEXTURE_2D, textures[i]);
+          glUniform1i(tex_pos, 0);
+          for (const auto& v : map[keys[i]]) {
+            glDrawArrays(GL_TRIANGLES, v.first, v.second);
+          }
+        }
         //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
         //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
 
@@ -818,6 +826,14 @@ int main() {
         glDrawBuffer(GL_BACK_RIGHT);
         StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, eye);
         glColorMask(false, false, true, false);
+        for (int i = 0; i < textures_size; ++i) {
+          glActiveTexture(GL_TEXTURE0);
+          glBindTexture(GL_TEXTURE_2D, textures[i]);
+          glUniform1i(tex_pos, 0);
+          for (const auto& v : map[keys[i]]) {
+            glDrawArrays(GL_TRIANGLES, v.first, v.second);
+          }
+        }
         //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
         //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
 
@@ -827,6 +843,14 @@ int main() {
         glViewport(0, 0, window.getSize().x/2, window.getSize().y);
         glDrawBuffer(GL_BACK_LEFT);
         StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, -eye);
+        for (int i = 0; i < textures_size; ++i) {
+          glActiveTexture(GL_TEXTURE0);
+          glBindTexture(GL_TEXTURE_2D, textures[i]);
+          glUniform1i(tex_pos, 0);
+          for (const auto& v : map[keys[i]]) {
+            glDrawArrays(GL_TRIANGLES, v.first, v.second);
+          }
+        }
         //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
         //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
 
@@ -834,6 +858,14 @@ int main() {
         glClear(GL_DEPTH_BUFFER_BIT);
         glDrawBuffer(GL_BACK_RIGHT);
         StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, eye);
+        for (int i = 0; i < textures_size; ++i) {
+          glActiveTexture(GL_TEXTURE0);
+          glBindTexture(GL_TEXTURE_2D, textures[i]);
+          glUniform1i(tex_pos, 0);
+          for (const auto& v : map[keys[i]]) {
+            glDrawArrays(GL_TRIANGLES, v.first, v.second);
+          }
+        }
         //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
         //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
         break;
