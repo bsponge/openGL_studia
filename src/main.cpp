@@ -19,46 +19,6 @@
 
 #include <SFML/System/Time.hpp>
 
-// Kody shaderów
-//
-/*
-const GLchar* vertexSource = R"glsl(
-#version 150 core
-#in vec2 aTexCoord;
-#out vec2 TexCoord;
-in vec3 position;
-#in vec3 color;
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 proj;
-out vec3 Color;
-
-void main(){
-  #TexCoord = aTexCoord;
-  Color = vec3(0.0, 1.0, 0.0);
-  gl_Position = proj * view * model * vec4(position, 1.0);
-}
-)glsl";
-
-
-
-const GLchar* fragmentSource = R"glsl(
-#version 150 core
-#uniform sampler2D texture1;
-#uniform sampler2D texture2;
-#in vec2 TexCoord;
-in vec3 Color;
-out vec4 outColor;
-
-void main()
-{
-  #outColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.5);
-  outColor = Color;
-}
-)glsl";
-
-
-   */
 
 const GLchar* vertexSource = R"glsl(
 #version 150 core
@@ -75,7 +35,6 @@ void main(){
   gl_Position = proj * view * model * vec4(position, 1.0);
 }
 )glsl";
-
 
 
 const GLchar* fragmentSource = R"glsl(
@@ -536,14 +495,6 @@ int main() {
 
   int textures_size = map.size();
 
-  /*
-  std::cout << map.size() << std::endl;
-  for (const auto& [key, value] : map) {
-    std::cout << key << std::endl;
-  }
-  */
-
-
   // Utworzenie i skompilowanie shadera wierzchołków
   GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertexShader, 1, &vertexSource, NULL);
@@ -631,45 +582,6 @@ int main() {
     glUniform1i(tex_pos, 0);
   }
 
-  /*
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, textures[0]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  int width, height, nrChannels;
-  stbi_set_flip_vertically_on_load(true);
-  unsigned char *data = stbi_load("/home/js/cpp/grafika/src/website.jpg", &width, &height, &nrChannels, 0);
-  if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  } else {
-    std::cout << "Failed to load texture" << std::endl;
-  }
-  stbi_image_free(data);
-
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, textures[1]);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  stbi_set_flip_vertically_on_load(true);
-  data = stbi_load("/home/js/cpp/grafika/src/test.jpg", &width, &height, &nrChannels, 0);
-  if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  } else {
-    std::cout << "Failed to load texture" << std::endl;
-  }
-  stbi_image_free(data);
-  */
-
-  
-  // ============================================== TEXTURES
 
   glm::mat4 model = glm::mat4(1.0f);
   model = glm::rotate(model, glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -819,9 +731,6 @@ int main() {
             glDrawArrays(GL_TRIANGLES, v.first, v.second);
           }
         }
-        //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
-        //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
-
         glClear(GL_DEPTH_BUFFER_BIT);
         glDrawBuffer(GL_BACK_RIGHT);
         StereoProjection(shaderProgram, -6, 6, -4.8, 4.8, 12.99, -100, zero_plane, dist, eye);
@@ -834,9 +743,6 @@ int main() {
             glDrawArrays(GL_TRIANGLES, v.first, v.second);
           }
         }
-        //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
-        //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
-
         glColorMask(true, true, true, true);
         break;
       case 1:
@@ -851,9 +757,6 @@ int main() {
             glDrawArrays(GL_TRIANGLES, v.first, v.second);
           }
         }
-        //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
-        //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
-
         glViewport(window.getSize().x/2, 0, window.getSize().x/2, window.getSize().y);
         glClear(GL_DEPTH_BUFFER_BIT);
         glDrawBuffer(GL_BACK_RIGHT);
@@ -866,11 +769,8 @@ int main() {
             glDrawArrays(GL_TRIANGLES, v.first, v.second);
           }
         }
-        //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
-        //glDrawElements(GL_TRIANGLES, indices_size, GL_UNSIGNED_INT, NULL);
         break;
       case 2:
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glViewport(0, 0, window.getSize().x, window.getSize().y);
 
         for (int i = 0; i < textures_size; ++i) {
@@ -883,9 +783,6 @@ int main() {
         }
         break;
     }
-
-    //glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices));
-
     window.display();
   }
 
