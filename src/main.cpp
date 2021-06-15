@@ -19,20 +19,23 @@
 
 #include <SFML/System/Time.hpp>
 
-
 const GLchar* vertexSource = R"glsl(
 #version 150 core
 in vec3 position;
 in vec2 atexCoord;
 in vec3 normal;
 out vec2 texCoord;
+out vec3 FragPos;
+out vec3 outNormal;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 proj;
 
 void main(){
   texCoord = atexCoord;
+  
   gl_Position = proj * view * model * vec4(position, 1.0);
+  FragPos = vec3(model * vec4(position, 1.0));
 }
 )glsl";
 
@@ -40,12 +43,23 @@ void main(){
 const GLchar* fragmentSource = R"glsl(
 #version 150 core
 uniform sampler2D texture1;
+uniform vec3 lightPos;
+in vec3 FragPos;
+in vec3 outNormal;
 in vec2 texCoord;
 out vec4 Color;
 
 void main()
 {
-  Color = texture(texture1, texCoord);
+  float ambientStrength = 0.5;
+  vec3 ambientlightColor = vec3(1.0, 1.0, 1.0);
+  vec4 ambient = ambientStrength * vec4(ambientlightColor, 1.0);
+  vec3 difflightColor = vec3(1.0, 1.0, 1.0);
+  vec3 norm = normalize(outNormal);
+  vec3 lightDir = normalize(lightPos - FragPos);
+  float diff = max(dot(norm, lightDir), 0.0);
+  vec3 diffuse = diff * difflightColor;
+  Color = (ambient + vec4(diffuse, 1.0)) * texture(texture1, texCoord);
 }
 )glsl";
 
@@ -550,6 +564,10 @@ int main() {
   glVertexAttribPointer(normAttrib, 3, GL_FLOAT, GL_FALSE, 8*sizeof(GL_FLOAT), (void*)(sizeof(GL_FLOAT)*3));
   glEnableVertexAttribArray(texCoord);
   glVertexAttribPointer(texCoord, 2, GL_FLOAT, GL_FALSE, 8*sizeof(GL_FLOAT), (void*)(sizeof(GL_FLOAT)*6));
+
+  glm::vec3 lightPos(10.0f, 10.0f, 10.0f);
+  GLint uniLightPos = glGetUniformLocation(shaderProgram, "lightPos");
+  glUniform3fv(uniLightPos, 1, glm::value_ptr(lightPos));
 
   //================================== TEXTURES
   std::vector<std::string> keys;

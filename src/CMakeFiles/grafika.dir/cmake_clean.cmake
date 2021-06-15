@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/grafika.dir/main.cpp.o"
+  "CMakeFiles/grafika.dir/main.cpp.o.d"
   "grafika"
   "grafika.pdb"
 )

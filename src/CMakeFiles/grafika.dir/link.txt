@@ -1,1 +1,1 @@
-/usr/bin/c++ CMakeFiles/grafika.dir/main.cpp.o -o grafika   -L/home/js/cpp/grafika/src/../include  -Wl,-rpath,/home/js/cpp/grafika/src/../include -lGL -lGLEW -lGLU -lXrandr -lsfml-graphics -lsfml-window -lsfml-system -lm 
+/usr/bin/g++ CMakeFiles/grafika.dir/main.cpp.o -o grafika   -L/home/js/cpp/grafika/src/../include  -Wl,-rpath,/home/js/cpp/grafika/src/../include -lGL -lGLEW -lGLU -lXrandr -lsfml-graphics -lsfml-window -lsfml-system -lm 
