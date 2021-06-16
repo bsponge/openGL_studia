@@ -33,7 +33,7 @@ uniform mat4 proj;
 
 void main(){
   texCoord = atexCoord;
-  
+  outNormal = normal;
   gl_Position = proj * view * model * vec4(position, 1.0);
   FragPos = vec3(model * vec4(position, 1.0));
 }
@@ -44,6 +44,7 @@ const GLchar* fragmentSource = R"glsl(
 #version 150 core
 uniform sampler2D texture1;
 uniform vec3 lightPos;
+uniform vec3 camPos;
 in vec3 FragPos;
 in vec3 outNormal;
 in vec2 texCoord;
@@ -51,17 +52,54 @@ out vec4 Color;
 
 void main()
 {
-  float ambientStrength = 0.5;
+  float ambientStrength = 0.1;
   vec3 ambientlightColor = vec3(1.0, 1.0, 1.0);
   vec4 ambient = ambientStrength * vec4(ambientlightColor, 1.0);
+
+  float diffuseStrength = 1.0;
+  vec3 diffuselightColor = vec3(1.0, 1.0, 1.0);
+  vec3 norm = normalize(outNormal);
+  vec3 lightDir = normalize(lightPos - FragPos);
+  float diff = max(dot(norm, lightDir), 0.0);
+  vec3 diffvec = diff * diffuselightColor * diffuseStrength;
+  vec4 diffuse = vec4(diffvec, 1.0);
+
+  float specularStrength = 1.0;
+  vec3 specularlightColor = vec3(1.0, 1.0, 1.0);
+  vec3 viewDir = normalize(camPos - FragPos);
+  vec3 reflectDir = reflect(-lightDir, norm);
+  float spec = pow(max(dot(viewDir, reflectDir), 0.0), 200);
+  vec4 specular = specularStrength * spec * vec4(specularlightColor, 1.0);
+
+  float dist = distance(lightPos, FragPos);
+  dist = (50-dist)/50;
+  dist = max(dist, 0.0);
+
+  Color = (ambient + dist*diffuse + dist*spec) * texture(texture1, texCoord);
+}
+)glsl";
+
+/*
+  float ambientStrength = 0.3;
+  vec3 ambientlightColor = vec3(1.0, 1.0, 1.0);
+  vec4 ambient = ambientStrength * vec4(ambientlightColor, 1.0);
+
+  float diffuseStrength = 1.0;
   vec3 difflightColor = vec3(1.0, 1.0, 1.0);
   vec3 norm = normalize(outNormal);
   vec3 lightDir = normalize(lightPos - FragPos);
   float diff = max(dot(norm, lightDir), 0.0);
-  vec3 diffuse = diff * difflightColor;
-  Color = (ambient + vec4(diffuse, 1.0)) * texture(texture1, texCoord);
-}
-)glsl";
+  vec3 diffvec = diff * difflightColor * diffuseStrength;
+  vec3 diffuse = vec4(diffvec, 1.0);
+
+  float specularStrength = 1.0;
+  vec3 specularlightColor = vec3(1.0, 1.0, 1.0);
+  vec3 viewDir = normalize(camPos - FragPos);
+  vec3 reflectDir = reflect(-lightDir, norm);
+  float spec = pow(max(dot(viewDir, reflectDir), 0.0), 200);
+  vec4 specular = specularStrength * spec * vec4(specularlightColor, 1.0);
+
+  */
 
 bool firstMouse = true;
 int lastX, lastY;
@@ -489,6 +527,8 @@ int main() {
 	// Inicjalizacja GLEW
 	glewExperimental = GL_TRUE;
 	glewInit();
+  glEnable(GL_MULTISAMPLE);
+  glEnable(GL_CULL_FACE);
 
   window.setMouseCursorGrabbed(true);
   window.setMouseCursorVisible(false);
@@ -505,7 +545,7 @@ int main() {
 
   std::map<std::string, std::vector<std::pair<int ,int>>> map;
 
-  bool b = LoadModelOBJNormalsCoord(indices_size, "/home/js/cpp/grafika/src/trzy.obj", vbo, map);
+  bool b = LoadModelOBJNormalsCoord(indices_size, "/home/js/cpp/grafika/src/final.obj", vbo, map);
 
   int textures_size = map.size();
 
@@ -565,10 +605,6 @@ int main() {
   glEnableVertexAttribArray(texCoord);
   glVertexAttribPointer(texCoord, 2, GL_FLOAT, GL_FALSE, 8*sizeof(GL_FLOAT), (void*)(sizeof(GL_FLOAT)*6));
 
-  glm::vec3 lightPos(10.0f, 10.0f, 10.0f);
-  GLint uniLightPos = glGetUniformLocation(shaderProgram, "lightPos");
-  glUniform3fv(uniLightPos, 1, glm::value_ptr(lightPos));
-
   //================================== TEXTURES
   std::vector<std::string> keys;
   for (const auto& [key, value] : map) {
@@ -619,6 +655,13 @@ int main() {
   GLint uniProj = glGetUniformLocation(shaderProgram, "proj");
 
   glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
+
+
+  glm::vec3 lightPos(0.0f, 0.0f, 10.0f);
+  GLint uniLightPos = glGetUniformLocation(shaderProgram, "lightPos");
+  glUniform3fv(uniLightPos, 1, glm::value_ptr(lightPos));
+
+
 
   sf::Clock clock;
   sf::Time time;
@@ -734,6 +777,9 @@ int main() {
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+
+    GLint uniCameraPos = glGetUniformLocation(shaderProgram, "camPos");
+    glUniform3fv(uniCameraPos, 1, glm::value_ptr(cameraPos));
 
     switch (mode) {
       case 0:
